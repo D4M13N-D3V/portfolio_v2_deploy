@@ -1,0 +1,63 @@
+# Production single-host stack for d4m13n.dev.
+#
+#   web         Next.js portfolio (built from the ./portfolio submodule)
+#   pocketbase  PocketBase backend (built from ./portfolio/pocketbase)
+#   caddy       Reverse proxy + automatic HTTPS (Let's Encrypt)
+#
+# No Kubernetes required: `git pull --recurse-submodules && docker compose up -d`.
+
+services:
+  pocketbase:
+    build:
+      context: ./portfolio/pocketbase
+    restart: unless-stopped
+    volumes:
+      - pb_data:/pb/pb_data
+    expose:
+      - "8090"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8090/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: ./portfolio
+      args:
+        # NEXT_PUBLIC_* are inlined at build time → must be the public origin.
+        NEXT_PUBLIC_POCKETBASE_URL: ${SITE_ORIGIN}
+        NEXT_PUBLIC_SITE_URL: ${SITE_ORIGIN}
+    restart: unless-stopped
+    environment:
+      # Server-side rendering talks to PocketBase over the internal network.
+      POCKETBASE_INTERNAL_URL: http://pocketbase:8090
+      NEXT_PUBLIC_POCKETBASE_URL: ${SITE_ORIGIN}
+      NEXT_PUBLIC_SITE_URL: ${SITE_ORIGIN}
+    expose:
+      - "3000"
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - pocketbase
+
+volumes:
+  pb_data:
+  caddy_data:
+  caddy_config:

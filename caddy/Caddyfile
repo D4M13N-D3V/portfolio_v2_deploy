@@ -1,0 +1,25 @@
+# Single-domain routing. PocketBase serves its API and admin under /api and /_,
+# everything else is the Next.js app. Caddy obtains and renews TLS automatically.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# PocketBase REST API + realtime + file serving.
+	handle /api/* {
+		reverse_proxy pocketbase:8090
+	}
+
+	# PocketBase admin UI.
+	handle /_/* {
+		reverse_proxy pocketbase:8090
+	}
+
+	# Everything else → the Next.js frontend.
+	handle {
+		reverse_proxy web:3000
+	}
+}
