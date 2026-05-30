@@ -1,4 +1,4 @@
 [submodule "portfolio"]
 	path = portfolio
-	url = https://git.d4m13n.dev/damien/portfolio.git
+	url = https://github.com/D4M13N-D3V/portfolio_v2.git
 	branch = main

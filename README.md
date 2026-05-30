@@ -4,7 +4,7 @@ Deployment repository for **d4m13n.dev**. Runs the whole site — Next.js fronte
 PocketBase backend, and a Caddy reverse proxy with automatic HTTPS — as a single
 Docker Compose stack on any Linux VM. **No Kubernetes.**
 
-The application code lives in the [`portfolio`](https://git.d4m13n.dev/damien/portfolio)
+The application code lives in the [`portfolio_v2`](https://github.com/D4M13N-D3V/portfolio_v2)
 repository, wired in here as a **git submodule** at `./portfolio`. This repo holds
 only the deployment glue: `docker-compose.yml`, the `Caddyfile`, and env config.
 
