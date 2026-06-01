@@ -9,11 +9,14 @@
 services:
   commissions-core-api:
     image: ${COMMISSIONS_API_IMAGE:-ghcr.io/d4m13n-d3v/comissions-api-amd64:latest}
+    platform: linux/amd64
     restart: unless-stopped
     profiles: [commissions]
     depends_on:
       pg:
         condition: service_healthy
+      pg-init:
+        condition: service_completed_successfully
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       # Database (note: the API binds the lowercase keys username/password)
@@ -33,13 +36,14 @@ services:
       Stripe__WebHookSecret: ${COMMISSIONS_STRIPE_WEBHOOK_SECRET:-}
       Novu__ApiKey: ${COMMISSIONS_NOVU_API_KEY:-}
       # Wiring
-      UI__BaseUrl: https://${COMMISSIONS_UI_HOST}
-      Cors__AllowedOrigins: https://${COMMISSIONS_UI_HOST}
+      UI__BaseUrl: ${PUBLIC_SCHEME:-https}://${COMMISSIONS_UI_HOST}
+      Cors__AllowedOrigins: ${PUBLIC_SCHEME:-https}://${COMMISSIONS_UI_HOST}
     expose:
       - "8080"
 
   commissions-ui:
     image: ${COMMISSIONS_UI_IMAGE:-ghcr.io/d4m13n-d3v/comissions-app-ui:latest}
+    platform: linux/amd64
     restart: unless-stopped
     profiles: [commissions]
     depends_on:
@@ -48,7 +52,7 @@ services:
       AUTH0_ISSUER_BASE_URL: ${COMMISSIONS_AUTH0_ISSUER_BASE_URL}
       AUTH0_CLIENT_ID: ${COMMISSIONS_AUTH0_CLIENT_ID}
       AUTH0_CLIENT_SECRET: ${COMMISSIONS_AUTH0_CLIENT_SECRET}
-      AUTH0_BASE_URL: https://${COMMISSIONS_UI_HOST}
+      AUTH0_BASE_URL: ${PUBLIC_SCHEME:-https}://${COMMISSIONS_UI_HOST}
       AUTH0_SECRET: ${COMMISSIONS_AUTH0_SECRET}
       AUTH0_AUDIENCE: ${COMMISSIONS_AUTH0_AUDIENCE}
       AUTH0_SCOPE: ${COMMISSIONS_AUTH0_SCOPE:-openid profile email}
@@ -57,6 +61,6 @@ services:
       # time (NEXT_PUBLIC_* are inlined by Next.js) via a CI build arg, so it must
       # equal the build-time value — keep COMMISSIONS_API_HOST aligned with the API
       # origin the UI image was built against (default api.commissions.demos.d4m13n.dev).
-      NEXT_PUBLIC_API_URL: https://${COMMISSIONS_API_HOST}
+      NEXT_PUBLIC_API_URL: ${PUBLIC_SCHEME:-https}://${COMMISSIONS_API_HOST}
     expose:
       - "3000"
