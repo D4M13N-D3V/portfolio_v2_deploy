@@ -8,7 +8,7 @@
 
 services:
   commissions-core-api:
-    image: ${COMMISSIONS_API_IMAGE:-ghcr.io/d4m13n-d3v/comissions-api-amd64:latest}
+    image: ${COMMISSIONS_API_IMAGE:-ghcr.io/d4m13n-d3v/comissions-app-core-api:latest}
     platform: linux/amd64
     restart: unless-stopped
     profiles: [commissions]
