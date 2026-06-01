@@ -1,0 +1,54 @@
+# Shared PostgreSQL 16 for every app that needs a relational database.
+# One container, one volume, a separate database + owner role per app.
+#
+#   pg        the database server (only started if an app that needs it is on)
+#   pg-init   one-shot, idempotent: creates the per-app DBs + roles on every up
+#
+# Each app then runs its OWN migrations against its database:
+#   MechanicBuddy carcare   -> mb-carcare-migrator (DbUp)
+#   MechanicBuddy management -> mb-management-migrator (DbUp)
+#   Commissions              -> core-api with Database__RunMigrationsOnStartup=true
+
+services:
+  pg:
+    image: postgres:16
+    restart: unless-stopped
+    profiles: [mechanicbuddy, commissions]
+    environment:
+      POSTGRES_USER: ${POSTGRES_SUPERUSER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: postgres
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_SUPERUSER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  pg-init:
+    image: postgres:16
+    profiles: [mechanicbuddy, commissions]
+    restart: "no"
+    depends_on:
+      pg:
+        condition: service_healthy
+    environment:
+      PGHOST: pg
+      PGUSER: ${POSTGRES_SUPERUSER:-postgres}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      CARCARE_DB: ${CARCARE_DB_NAME:-carcare}
+      CARCARE_USER: ${CARCARE_DB_USER:-carcare}
+      CARCARE_PASSWORD: ${CARCARE_DB_PASSWORD:-carcare}
+      MB_MGMT_DB: ${MB_MANAGEMENT_DB_NAME:-mb_management}
+      MB_MGMT_USER: ${MB_MANAGEMENT_DB_USER:-management}
+      MB_MGMT_PASSWORD: ${MB_MANAGEMENT_DB_PASSWORD:-management}
+      COMMISSIONS_DB: ${COMMISSIONS_DB_NAME:-comissionsapp}
+      COMMISSIONS_USER: ${COMMISSIONS_DB_USER:-comissions}
+      COMMISSIONS_PASSWORD: ${COMMISSIONS_DB_PASSWORD:-comissions}
+    volumes:
+      - ./init.sh:/init.sh:ro
+    entrypoint: ["bash", "/init.sh"]
+
+volumes:
+  pg_data:

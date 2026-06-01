@@ -1,3 +1,9 @@
 .env
 *.local
 .DS_Store
+
+# Caddy site files are generated per active profile by scripts/render-caddy.sh
+caddy/sites/*.caddy
+
+# Generated secrets (never commit real values)
+apps/mechanicbuddy/secrets/appsettings.Secrets.json

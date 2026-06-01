@@ -1,0 +1,40 @@
+# Portfolio (d4m13n.dev) — built from the ./portfolio git submodule.
+# PocketBase has no published image, so this app builds from source (as before).
+# NEXT_PUBLIC_* are inlined at build time, so they must be the public origin.
+
+services:
+  pocketbase:
+    build:
+      context: ../../portfolio/pocketbase
+    restart: unless-stopped
+    profiles: [portfolio]
+    volumes:
+      - pb_data:/pb/pb_data
+    expose:
+      - "8090"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8090/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: ../../portfolio
+      args:
+        NEXT_PUBLIC_POCKETBASE_URL: ${PORTFOLIO_ORIGIN}
+        NEXT_PUBLIC_SITE_URL: ${PORTFOLIO_ORIGIN}
+    restart: unless-stopped
+    profiles: [portfolio]
+    environment:
+      POCKETBASE_INTERNAL_URL: http://pocketbase:8090
+      NEXT_PUBLIC_POCKETBASE_URL: ${PORTFOLIO_ORIGIN}
+      NEXT_PUBLIC_SITE_URL: ${PORTFOLIO_ORIGIN}
+    expose:
+      - "3000"
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+
+volumes:
+  pb_data:

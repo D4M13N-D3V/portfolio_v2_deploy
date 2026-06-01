@@ -1,0 +1,25 @@
+# MechanicBuddy demo — one subdomain per public surface.
+{$MB_WEB_HOST} {
+	encode zstd gzip
+	reverse_proxy mb-web:3000
+}
+
+{$MB_API_HOST} {
+	encode zstd gzip
+	reverse_proxy mb-api:15567
+}
+
+{$MB_MANAGE_HOST} {
+	encode zstd gzip
+	reverse_proxy mb-management-portal:3026
+}
+
+{$MB_MANAGE_API_HOST} {
+	encode zstd gzip
+	reverse_proxy mb-management-api:15568
+}
+
+{$MB_MAIL_HOST} {
+	encode zstd gzip
+	reverse_proxy mb-mailhog:8025
+}

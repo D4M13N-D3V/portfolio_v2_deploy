@@ -1,0 +1,33 @@
+# Caddy reverse proxy + automatic HTTPS (Let's Encrypt). Always-on (no profile).
+#
+# Routing is split into per-app snippets under caddy/site-templates/. Only the
+# snippets for ACTIVE profiles are copied into caddy/sites/ (by render-caddy.sh)
+# so Caddy never tries to obtain certs / proxy for an app that isn't running.
+# Hostnames come from the environment below via Caddy's {$VAR} expansion.
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL}
+      PORTFOLIO_DOMAIN: ${PORTFOLIO_DOMAIN}
+      MB_WEB_HOST: ${MB_WEB_HOST}
+      MB_API_HOST: ${MB_API_HOST}
+      MB_MANAGE_HOST: ${MB_MANAGE_HOST}
+      MB_MANAGE_API_HOST: ${MB_MANAGE_API_HOST}
+      MB_MAIL_HOST: ${MB_MAIL_HOST}
+      COMMISSIONS_UI_HOST: ${COMMISSIONS_UI_HOST}
+      COMMISSIONS_API_HOST: ${COMMISSIONS_API_HOST}
+    volumes:
+      - ../../caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../../caddy/sites:/etc/caddy/sites:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
