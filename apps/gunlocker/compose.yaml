@@ -10,6 +10,12 @@ services:
     image: ${GUNLOCKER_IMAGE:-ghcr.io/d4m13n-d3v/gunlocker:latest}
     restart: unless-stopped
     profiles: [gunlocker]
+    # The image now runs as a non-root user (uid 100), but the existing
+    # gunlocker_pb_data volume was created root-owned by the old root container,
+    # so PocketBase hit "attempt to write a readonly database" and crash-looped.
+    # Run as root to keep the data writable. Proper fix: chown the volume to
+    # 100:101 and drop this line to restore the non-root hardening.
+    user: "0:0"
     environment:
       # Used only on first boot to create the PocketBase superuser.
       PB_ADMIN_EMAIL: ${GUNLOCKER_ADMIN_EMAIL:-admin@gunlocker.local}
