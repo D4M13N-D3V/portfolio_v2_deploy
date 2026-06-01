@@ -1,0 +1,6 @@
+# Gun Locker — PocketBase serves the SPA, REST API (/api), and admin (/_) all
+# on one port, so a single reverse_proxy covers everything.
+{$CADDY_SITE_SCHEME}{$GUNLOCKER_HOST} {
+	encode zstd gzip
+	reverse_proxy gunlocker:8090
+}

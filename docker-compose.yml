@@ -6,7 +6,7 @@
 # other by name (caddy -> mb-api:15567, commissions-core-api -> pg:5432, ...).
 #
 # Which apps actually run is controlled by COMPOSE_PROFILES in .env:
-#   portfolio | mechanicbuddy | commissions
+#   portfolio | mechanicbuddy | commissions | gunlocker
 # Caddy (the reverse proxy) and nothing else is always-on.
 #
 # To add a new app later: drop apps/<name>/compose.yaml, add it to `include:`,
@@ -20,3 +20,4 @@ include:
   - apps/portfolio/compose.yaml
   - apps/mechanicbuddy/compose.yaml
   - apps/commissions/compose.yaml
+  - apps/gunlocker/compose.yaml

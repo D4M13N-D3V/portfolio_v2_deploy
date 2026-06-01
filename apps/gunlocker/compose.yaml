@@ -1,0 +1,29 @@
+# Gun Locker — self-contained: a Vite/React SPA served by its OWN bundled
+# PocketBase (SPA at /, REST API at /api, admin UI at /_, all on :8090).
+# Pre-built multi-arch image; the SPA talks to PocketBase same-origin, so it
+# works behind any hostname. The bundled entrypoint creates the admin and
+# imports pb_schema.json on first boot. State (SQLite + uploads) lives in the
+# gunlocker_pb_data volume — its own PocketBase, separate from the portfolio.
+
+services:
+  gunlocker:
+    image: ${GUNLOCKER_IMAGE:-ghcr.io/d4m13n-d3v/gunlocker:latest}
+    restart: unless-stopped
+    profiles: [gunlocker]
+    environment:
+      # Used only on first boot to create the PocketBase superuser.
+      PB_ADMIN_EMAIL: ${GUNLOCKER_ADMIN_EMAIL:-admin@gunlocker.local}
+      PB_ADMIN_PASSWORD: ${GUNLOCKER_ADMIN_PASSWORD:-changeme123}
+    volumes:
+      - gunlocker_pb_data:/pb/pb_data
+    expose:
+      - "8090"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8090/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  gunlocker_pb_data:

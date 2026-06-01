@@ -25,6 +25,7 @@ services:
       MB_MAIL_HOST: ${MB_MAIL_HOST}
       COMMISSIONS_UI_HOST: ${COMMISSIONS_UI_HOST}
       COMMISSIONS_API_HOST: ${COMMISSIONS_API_HOST}
+      GUNLOCKER_HOST: ${GUNLOCKER_HOST}
     volumes:
       - ../../caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ../../caddy/sites:/etc/caddy/sites:ro
