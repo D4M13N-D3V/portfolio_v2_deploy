@@ -1,0 +1,62 @@
+# Commissions app demo — Next.js UI + .NET 8 core API, on the shared Postgres.
+#
+# The core-api runs its EF Core migrations on startup (the standalone migrator
+# project is a no-op stub), so the schema is created automatically.
+#
+# Auth0 is required for login. The Auth0 application must whitelist the deployed
+# callback/logout/web-origin URLs — see .env.example.
+
+services:
+  commissions-core-api:
+    image: ${COMMISSIONS_API_IMAGE:-ghcr.io/d4m13n-d3v/comissions-api-amd64:latest}
+    restart: unless-stopped
+    profiles: [commissions]
+    depends_on:
+      pg:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      # Database (note: the API binds the lowercase keys username/password)
+      Database__Host: pg
+      Database__Port: "5432"
+      Database__Database: ${COMMISSIONS_DB_NAME:-comissionsapp}
+      Database__username: ${COMMISSIONS_DB_USER:-comissions}
+      Database__password: ${COMMISSIONS_DB_PASSWORD:-comissions}
+      Database__RunMigrationsOnStartup: "true"
+      # Auth0
+      Auth0__Domain: ${COMMISSIONS_AUTH0_DOMAIN}
+      Auth0__Audience: ${COMMISSIONS_AUTH0_AUDIENCE}
+      Auth0__ClientId: ${COMMISSIONS_AUTH0_CLIENT_ID:-}
+      Auth0__ClientSecret: ${COMMISSIONS_AUTH0_CLIENT_SECRET:-}
+      # Payments / notifications (optional)
+      Stripe__ApiKey: ${COMMISSIONS_STRIPE_API_KEY:-}
+      Stripe__WebHookSecret: ${COMMISSIONS_STRIPE_WEBHOOK_SECRET:-}
+      Novu__ApiKey: ${COMMISSIONS_NOVU_API_KEY:-}
+      # Wiring
+      UI__BaseUrl: https://${COMMISSIONS_UI_HOST}
+      Cors__AllowedOrigins: https://${COMMISSIONS_UI_HOST}
+    expose:
+      - "8080"
+
+  commissions-ui:
+    image: ${COMMISSIONS_UI_IMAGE:-ghcr.io/d4m13n-d3v/comissions-app-ui:latest}
+    restart: unless-stopped
+    profiles: [commissions]
+    depends_on:
+      - commissions-core-api
+    environment:
+      AUTH0_ISSUER_BASE_URL: ${COMMISSIONS_AUTH0_ISSUER_BASE_URL}
+      AUTH0_CLIENT_ID: ${COMMISSIONS_AUTH0_CLIENT_ID}
+      AUTH0_CLIENT_SECRET: ${COMMISSIONS_AUTH0_CLIENT_SECRET}
+      AUTH0_BASE_URL: https://${COMMISSIONS_UI_HOST}
+      AUTH0_SECRET: ${COMMISSIONS_AUTH0_SECRET}
+      AUTH0_AUDIENCE: ${COMMISSIONS_AUTH0_AUDIENCE}
+      AUTH0_SCOPE: ${COMMISSIONS_AUTH0_SCOPE:-openid profile email}
+      # Server-side API calls (lib/apiProxy.ts, services/*) read this at runtime.
+      # The published image also BAKES this value into the client bundle at build
+      # time (NEXT_PUBLIC_* are inlined by Next.js) via a CI build arg, so it must
+      # equal the build-time value — keep COMMISSIONS_API_HOST aligned with the API
+      # origin the UI image was built against (default api.commissions.demos.d4m13n.dev).
+      NEXT_PUBLIC_API_URL: https://${COMMISSIONS_API_HOST}
+    expose:
+      - "3000"

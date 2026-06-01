@@ -1,0 +1,17 @@
+# Portfolio — single domain. PocketBase serves /api and /_; everything else
+# is the Next.js app.
+{$PORTFOLIO_DOMAIN} {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy pocketbase:8090
+	}
+
+	handle /_/* {
+		reverse_proxy pocketbase:8090
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}

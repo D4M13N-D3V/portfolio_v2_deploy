@@ -1,0 +1,134 @@
+# MechanicBuddy demo — full single-tenant app + SaaS management portal, on the
+# shared Postgres. All images are pulled pre-built from ghcr.io.
+#
+# Startup order:
+#   pg (healthy) -> mb-carcare-migrator (DbUp, one-shot) -> mb-api
+#   pg (healthy) -> mb-management-migrator (DbUp, one-shot) -> mb-management-api
+#   mb-web depends on mb-api; mb-management-portal depends on mb-management-api
+#
+# KNOWN LIMITATIONS (pre-built images):
+#  * mb-web / mb-management-portal bake their API URL to localhost at build time,
+#    so browser-side calls won't reach the real API until those images are
+#    rebuilt to accept the URL as a build arg. Server-side calls (API_URL /
+#    MANAGEMENT_API_URL below) do work.
+#  * mb-management-api tenant provisioning expects Helm/Kubernetes and won't
+#    provision paid tenants on this single host; the rest of the API still runs.
+
+services:
+  # ── single-tenant app ───────────────────────────────────────────────────
+  mb-carcare-migrator:
+    image: ${MB_DBUP_IMAGE:-ghcr.io/d4m13n-d3v/mechanicbuddy-dbup:latest}
+    profiles: [mechanicbuddy]
+    restart: "no"
+    depends_on:
+      pg:
+        condition: service_healthy
+    # This migrator reads config from JSON only (it does NOT read env vars), so
+    # the connection comes from the mounted secrets file (DbOptions.Host = pg).
+    volumes:
+      - ./secrets/appsettings.Secrets.json:/app/appsettings.Secrets.json:ro
+
+  mb-api:
+    image: ${MB_API_IMAGE:-ghcr.io/d4m13n-d3v/mechanicbuddy-api:latest}
+    restart: unless-stopped
+    profiles: [mechanicbuddy]
+    depends_on:
+      mb-carcare-migrator:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      DbOptions__Host: pg
+      DbOptions__Port: "5432"
+      DbOptions__UserId: ${CARCARE_DB_USER:-carcare}
+      DbOptions__Password: ${CARCARE_DB_PASSWORD:-carcare}
+      DbOptions__Name: ${CARCARE_DB_NAME:-carcare}
+      DbOptions__MultiTenancy__Enabled: "false"
+      JwtOptions__Secret: ${MB_JWT_SECRET}
+      JwtOptions__ConsumerSecret: ${MB_CONSUMER_SECRET}
+      SmtpOptions__Host: mb-mailhog
+      SmtpOptions__Port: "1025"
+      SmtpOptions__User: ""
+      SmtpOptions__Password: ""
+      PdfDirectory: /var/carcare/pdf
+      PuppeteerPath: /opt/puppeteer
+      Cors__Mode: open
+    # appsettings.Secrets.json is loaded with optional:false, so it must exist.
+    # Env vars above still override its values for the API.
+    volumes:
+      - ./secrets/appsettings.Secrets.json:/app/appsettings.Secrets.json:ro
+    expose:
+      - "15567"
+
+  mb-web:
+    image: ${MB_WEB_IMAGE:-ghcr.io/d4m13n-d3v/mechanicbuddy-web:latest}
+    restart: unless-stopped
+    profiles: [mechanicbuddy]
+    depends_on:
+      - mb-api
+    environment:
+      API_URL: http://mb-api:15567
+      NEXT_PUBLIC_API_URL: https://${MB_API_HOST}
+    expose:
+      - "3000"
+
+  # ── SaaS management layer ───────────────────────────────────────────────
+  mb-management-migrator:
+    image: ${MB_MGMT_DBUP_IMAGE:-ghcr.io/d4m13n-d3v/mechanicbuddy-management-dbup:latest}
+    profiles: [mechanicbuddy]
+    restart: "no"
+    depends_on:
+      pg:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Management: Host=pg;Port=5432;Database=${MB_MANAGEMENT_DB_NAME:-mb_management};Username=${MB_MANAGEMENT_DB_USER:-management};Password=${MB_MANAGEMENT_DB_PASSWORD:-management}
+
+  mb-management-api:
+    image: ${MB_MGMT_API_IMAGE:-ghcr.io/d4m13n-d3v/mechanicbuddy-management-api:latest}
+    restart: unless-stopped
+    profiles: [mechanicbuddy]
+    depends_on:
+      mb-management-migrator:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Management: Host=pg;Port=5432;Database=${MB_MANAGEMENT_DB_NAME:-mb_management};Username=${MB_MANAGEMENT_DB_USER:-management};Password=${MB_MANAGEMENT_DB_PASSWORD:-management}
+      Jwt__SecretKey: ${MB_MGMT_JWT_SECRET}
+      Stripe__SecretKey: ${MB_STRIPE_SECRET_KEY:-}
+      Stripe__WebhookSecret: ${MB_STRIPE_WEBHOOK_SECRET:-}
+      Stripe__PublishableKey: ${MB_STRIPE_PUBLISHABLE_KEY:-}
+      Email__ResendApiKey: ${MB_RESEND_API_KEY:-}
+      Email__FromEmail: ${MB_FROM_EMAIL:-noreply@demos.d4m13n.dev}
+      Database__PostgresHost: pg
+      Database__PostgresPort: "5432"
+      Database__PostgresUser: ${MB_MANAGEMENT_DB_USER:-management}
+      Database__PostgresPassword: ${MB_MANAGEMENT_DB_PASSWORD:-management}
+      Npm__Enabled: "false"
+      Cors__AllowedOrigins__0: https://${MB_MANAGE_HOST}
+    expose:
+      - "15568"
+
+  mb-management-portal:
+    image: ${MB_MGMT_PORTAL_IMAGE:-ghcr.io/d4m13n-d3v/mechanicbuddy-management-portal:latest}
+    restart: unless-stopped
+    profiles: [mechanicbuddy]
+    depends_on:
+      - mb-management-api
+    environment:
+      MANAGEMENT_API_URL: http://mb-management-api:15568
+      NEXT_PUBLIC_MANAGEMENT_API_URL: https://${MB_MANAGE_API_HOST}
+      NEXT_PUBLIC_APP_URL: https://${MB_MANAGE_HOST}
+      SESSION_SECRET: ${MB_PORTAL_SESSION_SECRET}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${MB_STRIPE_PUBLISHABLE_KEY:-}
+      STRIPE_SECRET_KEY: ${MB_STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${MB_STRIPE_WEBHOOK_SECRET:-}
+    expose:
+      - "3026"
+
+  # ── email capture (dev/demo) ────────────────────────────────────────────
+  mb-mailhog:
+    image: mailhog/mailhog
+    restart: unless-stopped
+    profiles: [mechanicbuddy]
+    expose:
+      - "8025"
+      - "1025"

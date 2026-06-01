@@ -1,0 +1,10 @@
+# Commissions app demo — UI + core API.
+{$COMMISSIONS_UI_HOST} {
+	encode zstd gzip
+	reverse_proxy commissions-ui:3000
+}
+
+{$COMMISSIONS_API_HOST} {
+	encode zstd gzip
+	reverse_proxy commissions-core-api:8080
+}
