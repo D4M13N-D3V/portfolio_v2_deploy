@@ -6,11 +6,12 @@
 #   pg (healthy) -> mb-management-migrator (DbUp, one-shot) -> mb-management-api
 #   mb-web depends on mb-api; mb-management-portal depends on mb-management-api
 #
-# KNOWN LIMITATIONS (pre-built images):
-#  * mb-web / mb-management-portal bake their API URL to localhost at build time,
-#    so browser-side calls won't reach the real API until those images are
-#    rebuilt to accept the URL as a build arg. Server-side calls (API_URL /
-#    MANAGEMENT_API_URL below) do work.
+# NOTES (pre-built images):
+#  * mb-web / mb-management-portal now bake a placeholder URL for their
+#    NEXT_PUBLIC_* vars and rewrite it to the real value at startup (via each
+#    image's docker-entrypoint.sh), so the NEXT_PUBLIC_* env vars below are
+#    honoured at runtime. Requires the rebuilt images. (mb-web's client traffic
+#    already proxies via the server-side API_URL regardless.)
 #  * mb-management-api tenant provisioning expects Helm/Kubernetes and won't
 #    provision paid tenants on this single host; the rest of the API still runs.
 
