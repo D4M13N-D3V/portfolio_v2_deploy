@@ -1,6 +1,6 @@
 # Portfolio — single domain. PocketBase serves /api and /_; everything else
 # is the Next.js app.
-{$PORTFOLIO_DOMAIN} {
+{$CADDY_SITE_SCHEME}{$PORTFOLIO_DOMAIN} {
 	encode zstd gzip
 
 	handle /api/* {

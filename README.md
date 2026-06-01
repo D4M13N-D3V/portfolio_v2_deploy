@@ -13,9 +13,10 @@ Each app is a self-contained Compose file pulled into one project via Compose
 │  Caddy :80/:443  (auto-HTTPS, one site block per app)       │
 │                                                              │
 │  d4m13n.dev                          → web + pocketbase      │  portfolio
-│  mechanicbuddy.demos.d4m13n.dev      → mb-web                │
-│  api.mechanicbuddy.demos.d4m13n.dev  → mb-api                │  mechanicbuddy
-│  manage[-api].mechanicbuddy.demos…   → management portal/api │
+│  mechanicbuddy.demos.d4m13n.dev      → management portal     │
+│  demo.mechanicbuddy.demos.d4m13n.dev → mb-web (workshop app) │  mechanicbuddy
+│  api.mechanicbuddy.demos.d4m13n.dev  → mb-api                │
+│  manage-api.mechanicbuddy.demos…     → management api        │
 │  commissions.demos.d4m13n.dev        → commissions-ui        │
 │  api.commissions.demos.d4m13n.dev    → commissions-core-api  │  commissions
 │                                                              │

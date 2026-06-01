@@ -14,6 +14,9 @@ services:
       - "443:443"
     environment:
       ACME_EMAIL: ${ACME_EMAIL}
+      # Empty = automatic HTTPS (Let's Encrypt). Set to "http://" to serve plain
+      # HTTP only (e.g. private/Tailscale hosts where ACME can't validate).
+      CADDY_SITE_SCHEME: ${CADDY_SITE_SCHEME:-}
       PORTFOLIO_DOMAIN: ${PORTFOLIO_DOMAIN}
       MB_WEB_HOST: ${MB_WEB_HOST}
       MB_API_HOST: ${MB_API_HOST}
@@ -22,6 +25,7 @@ services:
       MB_MAIL_HOST: ${MB_MAIL_HOST}
       COMMISSIONS_UI_HOST: ${COMMISSIONS_UI_HOST}
       COMMISSIONS_API_HOST: ${COMMISSIONS_API_HOST}
+      GUNLOCKER_HOST: ${GUNLOCKER_HOST}
     volumes:
       - ../../caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ../../caddy/sites:/etc/caddy/sites:ro
